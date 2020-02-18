@@ -1,0 +1,3 @@
+[MESSAGES CONTROL]
+disable=C0326,missing-docstring,invalid-name,trailing-whitespace
+
