@@ -8,8 +8,8 @@ def find_threshold(table, attributeColumn):
 
     clf = clf.fit(list(dataset), list(target))
     
-    threshold = clf.tree_.threshold[0]
-    gini = clf.tree_.impurity[0]
+    threshold = clf.tree_.threshold[0].item()
+    gini = clf.tree_.impurity[0].item()
     return threshold, gini
 
 def divide(table, attributeColumn):
