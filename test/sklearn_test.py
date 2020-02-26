@@ -20,12 +20,12 @@ def test_simple_tree_equal_classes():
 
 def test_find_treshold():
     table = [[1, "asdasd", 100], [-1, "asd" ,0]]
-    assert decision_tree.find_threshold(table, 2) == 50
-    assert decision_tree.find_threshold(table, 2) != 20
+    assert decision_tree.find_threshold(table, 2)[0] == 50
+    assert decision_tree.find_threshold(table, 2)[0] != 20
 
 def test_divide():
     table = [[1, "a", 100], [-1, "b", 0]]
-    (left, right, threshold) = decision_tree.divide(table, 2)
+    (left, right, threshold, gini) = decision_tree.divide(table, 2)
     assert right[0] == table[0] 
     assert left[0] == table[1] 
     assert threshold == 50 
@@ -39,5 +39,5 @@ def test_purity_kind():
 def test_query_tree():
     table = [[1, 1900, 170], [1, 0, 120], [-1, 2000, 190], [-1, 2010, 120], [-1, 1650, 200]]
 
-    clf = decision_tree.make_tree(table, 1)
+    clf = decision_tree.make_tree(table)
     assert clf.threshold == 1950 
