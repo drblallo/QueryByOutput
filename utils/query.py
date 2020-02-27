@@ -54,8 +54,8 @@ def tree_to_query(input_schema, tables, joined_schema, tree):
 def projected_table(remove_columns, joined_table):
     cloned_table = [] 
     for row in joined_table:
+        cloned_table.append(row.copy())
         for column in reversed(remove_columns):
-            cloned_table.append(row.copy())
             del cloned_table[-1][column] 
 
     return cloned_table
@@ -65,6 +65,8 @@ def decorate_table(example_table, remove_columns, joined_table):
     kinds = [-1] * len(joined_table)
 
     cloned_table = projected_table(remove_columns, joined_table)
+    print("-----CLONED-------")
+    print(cloned_table)
 
     for row in example_table:
         ls = []
@@ -74,6 +76,7 @@ def decorate_table(example_table, remove_columns, joined_table):
         for index in ls:
             kinds[index] = 1 if len(ls) == 1 else 0
 
+    print(kinds)
     for (row, kind) in zip(joined_table, kinds):
         row.insert(0, kind)
 
