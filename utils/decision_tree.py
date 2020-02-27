@@ -1,4 +1,5 @@
 from sklearn import tree
+import sys
 
 def find_threshold(table, attributeColumn):
     clf = tree.DecisionTreeClassifier()
@@ -15,8 +16,10 @@ def find_threshold(table, attributeColumn):
 def divide(table, attributeColumn):
     threshold, gini = find_threshold(table, attributeColumn)
     
-    left = list(x for x in table if x[attributeColumn] <= threshold)
-    right = list(x for x in table if x[attributeColumn] > threshold)
+    left = [x for x in table if x[attributeColumn] <= threshold]
+    right = [x for x in table if x[attributeColumn] > threshold]
+    if not left or not right:
+        gini = 999
 
     return left, right, threshold, gini
 
@@ -39,15 +42,16 @@ def splitGini(s1, s2):
     assert gini12 >= 0.0
     return gini12
 
+def attribute_score(table):
+    for attr in range(1, len(table[0])):
+        (left, right, threshold, gini) = divide(table, attr)
+        yield left, right, threshold, gini, attr
+
 def best_attribute(table):
-    def generate_attributes(table):
-        for attr in range(1, len(table[0])):
-            (_, gini) = find_threshold(table, attr)
-            yield gini, attr
-
-    (_, attr) = min(generate_attributes(table), key=lambda pair: pair[0])
-
-    return attr 
+    (left, right, threshold, gini, attr) = min(attribute_score(table), key=lambda pair: pair[3])
+    if gini >= 999:
+        sys.exit("A non-pure node could not be split, a solution cannot be found")
+    return (left, right, threshold, attr)
 
 def purity_kind(table):
     assert len(table) != 0
@@ -71,8 +75,8 @@ class Tree:
     def recursiveStr(self, nesting):
         me = "attribute: " + str(self.attributeColumn) + " threshold " + str(self.threshold)
 
-        leftStr = childToString(self.left, nesting+1) 
-        rightStr = childToString(self.right, nesting+1)
+        leftStr = childToString(self.left, nesting + 1) 
+        rightStr = childToString(self.right, nesting + 1)
 
         return (" " * nesting) + me + "\n" + leftStr + "\n" + rightStr 
 
@@ -85,19 +89,18 @@ def updateFree(table, newValue):
             row[0] = newValue
 
 def make_tree(table):
+    if not table:
+        return -1
     kind = purity_kind(table)
     if kind != 0: 
         return kind
 
-    case = 1
-    attributeColumn = best_attribute(table)
-    (left, right, threshold, _) = divide(table, attributeColumn)
+    (left, right, threshold, attributeColumn) = best_attribute(table)
 
+    case = 1
     if case == 1:
         updateFree(left, 1) 
         updateFree(right, 1)
-
-
 
     left = make_tree(left)
     right = make_tree(right)

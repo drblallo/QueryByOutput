@@ -16,3 +16,14 @@ def test_where_segment():
 
     assert query.where_segment(joined_schema, clf) == "WHERE ((birth <= 1950.0 AND ((birth <= 825.0) OR (birth > 825.0 AND ((birth > 1775.0))))))"
     
+def test_decorate_tabe():
+    joined_table = [[1900, 170, 10], [0, 120, 10], [0, 120, 100], [2010, 120, 10], [1650, 200, 10]]
+    remove_columns = [2]
+    example_table = [[1900, 170], [0, 120]]
+
+    out = query.decorate_table(example_table, remove_columns, joined_table)
+
+    assert out == [[1, 1900, 170, 10], [0, 0, 120, 10], [0, 0, 120, 100], [-1, 2010, 120, 10], [-1, 1650, 200, 10]], str(out)
+    
+
+
