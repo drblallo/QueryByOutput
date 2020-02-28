@@ -1,69 +1,135 @@
 from sklearn import tree
 import sys
 
+
 def find_threshold(table, attributeColumn):
+    """
+    Given a decorated table and a column index to use, returns the optimal threshold to use and its gini value
+    :param table: the decorated table( table[0] contains the target of each row)
+    :param attributeColumn: the column to use
+    :return: pair threshold,gini
+    """
+
+    # use sklearn's decision tree to find the best split value
     clf = tree.DecisionTreeClassifier()
-    
+
     dataset = ([x[attributeColumn]] for x in table)
-    target = (x[0] for x in table) 
+    target = (x[0] for x in table)
 
     clf = clf.fit(list(dataset), list(target))
-    
+
     threshold = clf.tree_.threshold[0].item()
     gini = clf.tree_.impurity[0].item()
     return threshold, gini
 
+
 def divide(table, attributeColumn):
+    """
+    Given a decorated table and a column index to use, splits the table according to the optimal threshold
+    :param table: the decorated table
+    :param attributeColumn: the column to uyse
+    :return: a decorated table containing the rows with row[attributeColumn]<=threshold, a table with the other rows, the threshold and the gini value
+    """
+
+    # find best threshold
     threshold, gini = find_threshold(table, attributeColumn)
-    
+
+    # split using the found threshold
     left = [x for x in table if x[attributeColumn] <= threshold]
     right = [x for x in table if x[attributeColumn] > threshold]
-    if not left or not right:
+    if not left or not right:  # if left or right are empty this split should be discarded
         gini = 999
 
     return left, right, threshold, gini
 
-def countOfClass(table, cls):
+
+def count_of_class(table, cls):
+    """
+    Returns the value of the fraction of rows that pertain to cls
+    :param table: a decorated table
+    :param cls: class to use
+    :return: fraction of rows pertaining to class cls
+    """
     return sum(1.0 if x[0] == cls else 0.0 for x in table) / len(table)
 
-def singleGini(s):
-    unass = countOfClass(s, 0) 
-    pos = countOfClass(s, 1) 
-    neg = countOfClass(s, -1) 
 
-    gini = 1.0 - ((unass * unass) + (pos*pos) * (neg*neg))
+def single_gini(s):
+    """
+    Calculates the gini value of a single decorated table considering 3 classes
+    :param s: set to use
+    :return: gini value
+    """
+    unass = count_of_class(s, 0)
+    pos = count_of_class(s, 1)
+    neg = count_of_class(s, -1)
+
+    gini = 1.0 - ((unass * unass) + (pos * pos) * (neg * neg))
     assert gini >= 0.0
     return gini
 
-def splitGini(s1, s2):
-    gini12 = (len(s1) * singleGini(s1)) + (len(s2) + singleGini(s2))
+
+def split_gini(s1, s2):
+    """
+    Calculates the gini value of two decorated tables considering 3 classes
+    :param s1: first table
+    :param s2: second table
+    :return: gini value
+    """
+    gini12 = (len(s1) * single_gini(s1)) + (len(s2) + single_gini(s2))
     gini12 = gini12 / (len(s1) + (len(s2)))
 
     assert gini12 >= 0.0
     return gini12
 
+
 def attribute_score(table):
+    """
+    Calculates the score of each attribute and yields the split tables and gini value
+    :param table: table to be split
+    """
     for attr in range(1, len(table[0])):
         (left, right, threshold, gini) = divide(table, attr)
         yield left, right, threshold, gini, attr
 
+
 def best_attribute(table):
+    """
+    Finds the best attribute to split the given table
+    :param table: decorated table to be split
+    :return: the left table, right table, the threshold used and the gini value
+    """
     (left, right, threshold, gini, attr) = min(attribute_score(table), key=lambda pair: pair[3])
+
+    # if the best gini vlaue is 999, it means that no split on any attribute can separate the tuples
     if gini >= 999:
         sys.exit("A non-pure node could not be split, a solution cannot be found")
-    return (left, right, threshold, attr)
+    return left, right, threshold, attr
+
 
 def purity_kind(table):
+    """
+    Checks if a table is pure (all rows are of the same class)
+    :param table: the decorated table
+    :return: 1 if all rows are bound positive, -1 if all are bound negative, 0 else
+    """
     assert len(table) != 0
 
-    sameKind = list((x for x in table if x[0] == table[0][0]))
-    if len(sameKind) == len(table):
+    same_kind = list((x for x in table if x[0] == table[0][0]))
+    if len(same_kind) == len(table):
         return table[0][0]
 
     return 0
 
-def childToString(child, nesting):
-    return child.recursiveStr(nesting) if isinstance(child, Tree) else (" " * nesting) + str(child)
+
+def child_to_string(child, nesting):
+    """
+    To string method for a child
+    :param child:  child to be serialized
+    :param nesting: nesting level
+    :return: a string representation of a child
+    """
+    return child.recursiveStr(nesting) if isinstance(child, Tree) else ("/" * nesting) + str(child)
+
 
 class Tree:
     def __init__(self, left, right, threshold, attributeColumn):
@@ -72,38 +138,63 @@ class Tree:
         self.threshold = threshold
         self.attributeColumn = attributeColumn
 
+
     def recursiveStr(self, nesting):
+        """
+        Builds a string representation of the tree
+        :param nesting: nesting value
+        :return: a tree in the form
+        attribute: index_of attribute threshold threshold_value
+        /left_child
+        /right_child
+        """
         me = "attribute: " + str(self.attributeColumn) + " threshold " + str(self.threshold)
 
-        leftStr = childToString(self.left, nesting + 1) 
-        rightStr = childToString(self.right, nesting + 1)
+        left_str = child_to_string(self.left, nesting + 1)
+        right_str = child_to_string(self.right, nesting + 1)
 
-        return (" " * nesting) + me + "\n" + leftStr + "\n" + rightStr 
+        return ("/" * nesting) + me + "\n" + left_str + "\n" + right_str
 
     def __str__(self):
         return self.recursiveStr(0)
 
-def updateFree(table, newValue):
+
+def update_free(table, new_value):
+    """
+    Changes in place all free tuples to the new value
+    :param table: decorated table
+    :param new_value: new value
+    """
     for row in table:
         if row[0] == 0:
-            row[0] = newValue
+            row[0] = new_value
+
 
 def make_tree(table):
-    if not table:
+    """
+    Recursive function that given a decorated table build a decision tree on it using case C1 of the paper
+    :param table: table to be analyzed
+    :return: the Tree built
+    """
+
+    if not table:  # if table is empty
         return -1
-    kind = purity_kind(table)
-    if kind != 0: 
+
+    kind = purity_kind(table)  # find out if the table is pure, if it is then this leaf node is ok, return
+    if kind != 0:
         return kind
 
+    # find best attribute to split on and split on it
     (left, right, threshold, attributeColumn) = best_attribute(table)
 
     case = 1
     if case == 1:
-        updateFree(left, 1) 
-        updateFree(right, 1)
+        # case C1 puts as positive all free tuples
+        update_free(left, 1)
+        update_free(right, 1)
 
+    # build left and right subtrees
     left = make_tree(left)
     right = make_tree(right)
 
-    return Tree(left, right, threshold, attributeColumn) 
-    
+    return Tree(left, right, threshold, attributeColumn)

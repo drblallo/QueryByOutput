@@ -2,20 +2,30 @@ from utils import decision_tree
 from utils import query
 import csv
 
+
 def example():
+    """
+    This function builds a simple example and shows the process by starting from an dummy table
+    """
     joined_table = [[1900, 170, 10], [0, 120, 10], [0, 120, 100], [2010, 120, 10], [1650, 200, 10]]
     remove_columns = [2]
     example_table = [[1900, 170], [0, 120]]
 
     annotated_table = query.decorate_table(example_table, remove_columns, joined_table)
 
-    joined_schema = ["I SHOULD NOT BE VISIBLE", "birth", "height"]
+    joined_schema = ["I SHOULD NOT BE VISIBLE", "birth", "height"]  # the decorator column should never be in the output
     tree = decision_tree.make_tree(annotated_table)
 
     print(tree)
     print(query.where_segment(joined_schema, tree))
 
+
 def load(file_name):
+    """
+    Loads a csv file and separates the attribute names from the actual rows
+    :param file_name:
+    :return:
+    """
     with open(file_name, newline='') as f:
         reader = csv.reader(f)
         data = list(reader)
@@ -39,6 +49,7 @@ if __name__ == '__main__':
     print(example_table)
     print(example_schema)
 
+    # finds which columns are projected away
     missing = [index for (index, x) in enumerate(db_schema) if x not in example_schema]
     annotated_table = query.decorate_table(example_table, missing, db_table)
 
