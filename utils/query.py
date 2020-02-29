@@ -116,17 +116,18 @@ def decorate_table(example_table, remove_columns, joined_table):
     The values are -1, if the row doesn't project to a row in the example table (bound negative)
     0 if the row does project to a row in the example table, but it isn't the only one (free)
     1 if the row does project to a row in the example table and it is the only one (bound positive)
+    Returns a row of the example if a row in the example isn't obtainable
     :param example_table: the example table from the user
     :param remove_columns: the columns to be removed from the output
     :param joined_table: the joined table from the database
-    :return: the joined table decorated with a leading column
+    :return: the joined table decorated with a leading column or the empty list and a boolean indicating success
     """
 
     kinds = [-1] * len(joined_table)
 
     # project all rows
     cloned_table = projected_table(remove_columns, joined_table)
-    print("-----CLONED-------")
+    print("------PROJECTED TABLE & TARGET CLASSES-------")
     print(cloned_table)
 
     for row in example_table:
@@ -134,6 +135,8 @@ def decorate_table(example_table, remove_columns, joined_table):
         for (index, join_row) in enumerate(cloned_table):
             if join_row == row:
                 ls.append(index)
+        if not ls:  # if an example row doesn't match any projection, the query is impossible
+            return row, False
         for index in ls:
             kinds[index] = 1 if len(ls) == 1 else 0  # set all indexes to 0, or 1 if there is only one
 
@@ -143,4 +146,4 @@ def decorate_table(example_table, remove_columns, joined_table):
     for (row, kind) in zip(joined_table, kinds):
         row.insert(0, kind)
 
-    return joined_table
+    return joined_table, True

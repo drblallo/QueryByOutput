@@ -39,7 +39,8 @@ def divide(table, attributeColumn):
     right = [x for x in table if x[attributeColumn] > threshold]
     if not left or not right:  # if left or right are empty this split should be discarded
         gini = 999
-
+    else:
+        gini = split_gini(left, right)
     return left, right, threshold, gini
 
 
@@ -63,8 +64,9 @@ def single_gini(s):
     pos = count_of_class(s, 1)
     neg = count_of_class(s, -1)
 
-    gini = 1.0 - ((unass * unass) + (pos * pos) * (neg * neg))
+    gini = 1.0 - ((unass * unass) + (pos * pos) + (neg * neg))
     assert gini >= 0.0
+    # print("pos is "+str(pos)+" neg is "+str(neg)+" unass is "+str(unass)+" gini "+str(gini))
     return gini
 
 
@@ -75,7 +77,7 @@ def split_gini(s1, s2):
     :param s2: second table
     :return: gini value
     """
-    gini12 = (len(s1) * single_gini(s1)) + (len(s2) + single_gini(s2))
+    gini12 = (len(s1) * single_gini(s1)) + (len(s2) * single_gini(s2))
     gini12 = gini12 / (len(s1) + (len(s2)))
 
     assert gini12 >= 0.0
@@ -89,6 +91,11 @@ def attribute_score(table):
     """
     for attr in range(1, len(table[0])):
         (left, right, threshold, gini) = divide(table, attr)
+        #if (gini < 999):
+        #    print(" attribute " + str(attr) + " has threshold " + str(threshold) + " gini " + str(
+        #        gini) + " mygini " + str(split_gini(left, right)))
+        #    print("left is " + str(left) + " right is " + str(right))
+        #    print()
         yield left, right, threshold, gini, attr
 
 
@@ -128,7 +135,7 @@ def child_to_string(child, nesting):
     :param nesting: nesting level
     :return: a string representation of a child
     """
-    return child.recursiveStr(nesting) if isinstance(child, Tree) else ("/" * nesting) + str(child)
+    return child.recursiveStr(nesting) if isinstance(child, Tree) else ("\t" * nesting) + str(child)
 
 
 class Tree:
@@ -137,7 +144,6 @@ class Tree:
         self.right = right
         self.threshold = threshold
         self.attributeColumn = attributeColumn
-
 
     def recursiveStr(self, nesting):
         """
@@ -153,7 +159,7 @@ class Tree:
         left_str = child_to_string(self.left, nesting + 1)
         right_str = child_to_string(self.right, nesting + 1)
 
-        return ("/" * nesting) + me + "\n" + left_str + "\n" + right_str
+        return ("\t" * nesting) + me + "\n" + left_str + "\n" + right_str
 
     def __str__(self):
         return self.recursiveStr(0)
